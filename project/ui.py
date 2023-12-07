@@ -344,7 +344,7 @@ class BasicLSBOptions:
             self.b_ui = ui.number(label='B', value=4, min=0, max=8, precision=0).classes("w-8")
     
     def get_args(self):
-        return {"color_proportion": (self.r_ui.value, self.g_ui.value, self.b_ui.value)} # TODO proper order
+        return {"color_proportion": (int(self.r_ui.value), int(self.g_ui.value), int(self.b_ui.value))}
 
 
 class VRLSBOptions:
