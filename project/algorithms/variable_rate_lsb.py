@@ -3,6 +3,19 @@ import numpy as np
 def coords_from_ctr(ctr, h, w, d):
     return ctr%8, ctr//8%d, ctr//(8*d)%w, ctr//(8*d*w)%h
 
+def lsb_vr_count_available_bits(im, alpha=9, max_p=4):
+    h1, w1, d1 = im.shape
+
+    result = 0
+
+    for row in range(2, h1 - 1):
+        for col in range(2 + row%2, w1 - 1, 2):
+            for d in range(d1):
+                x = im[row - 1, col, d] ^ im[row + 1, col, d] ^ im[row, col - 1, d] ^ im[row, col + 1, d]
+                result += min(max_p, int(np.ceil(x/2))) if x > alpha else 1
+    
+    return result
+
 def lsb_vr_hide(im1, im2, alpha=9, max_p=4):
     h1, w1, d1 = im1.shape
     h2, w2, d2 = im2.shape
@@ -40,10 +53,10 @@ def lsb_vr_reveal(im, hidden_shape, alpha=9, max_p=4):
     im2_ctr = 0
     res_b = 0
     
-    for row in range(2, h1 - 1):
-        for col in range(2 + row%2, w1 - 1, 2):
+    for row in range(1, h1 - 1):
+        for col in range(1 + row%2, w1 - 1, 2):
             for d in range(d1):
-                x = im1[row - 1, col, d] ^ im1[row + 1, col, d] ^ im1[row, col - 1, d] ^ im1[row, col + 1, d]
+                x = im[row - 1, col, d] ^ im[row + 1, col, d] ^ im[row, col - 1, d] ^ im[row, col + 1, d]
                 p = 1
                 if x > alpha:
                     p = min(max_p, int(np.ceil(x/2)))
