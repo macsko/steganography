@@ -37,7 +37,7 @@ def lsb_basic_reveal(im, hidden_shape, color_proportion=None):
     if color_proportion is None:
         color_proportion = [8*h2//h1]*3
         
-    res = np.zeros(hidden_shape, dtype=int)
+    res = np.zeros(hidden_shape, dtype=np.uint8)
     res_b = 0
     im2_ctr = 0
     

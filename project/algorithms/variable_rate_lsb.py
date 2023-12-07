@@ -35,7 +35,7 @@ def lsb_vr_reveal(im, hidden_shape, alpha=9, max_p=4):
     h1, w1, d1 = im.shape
     h2, w2, d2 = hidden_shape
         
-    res = np.zeros(hidden_shape, dtype=int)
+    res = np.zeros(hidden_shape, dtype=np.uint8)
     
     im2_ctr = 0
     res_b = 0
