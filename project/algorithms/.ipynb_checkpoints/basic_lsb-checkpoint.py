@@ -6,7 +6,7 @@ def coords_from_ctr(ctr, h, w, d):
 def lsb_basic_hide(im1, im2, color_proportion=None):
     h1, w1, d1 = im1.shape
     h2, w2, d2 = im2.shape
-    print(im1.shape, im2.shape)
+    
     if color_proportion is None:
         color_proportion = [8*h2//h1]*3
         
