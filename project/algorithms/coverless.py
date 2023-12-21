@@ -40,13 +40,15 @@ def get_block_with_hash(image, x, y):
     return block, hash
 
 
-def build_block_cache(filenames):
+def build_block_cache(filenames, progress_queue):
     cache = {
         0: set(),
         1: set()
     }
 
-    for f in filenames:
+    files_len = len(filenames)
+    for i, f in enumerate(filenames):
+        progress_queue.put_nowait(i / files_len)
         im = cv2.imread(f)
         blocks_with_hashes = get_blocks_with_hashes(im)
         for block, hash in blocks_with_hashes:
@@ -128,7 +130,7 @@ def bit_array_to_data(bit_array):
     return m.group(0)
 
 
-def hide_data(image, data, cache):
+def hide_data(image, data, cache, progress_queue):
     height, width, _ = image.shape
     num_of_blocks_horizontal = width // 3
     num_of_blocks_vertical = height // 3
@@ -138,8 +140,11 @@ def hide_data(image, data, cache):
         raise Exception(f"Image too small to hide data of size {len(data)}")
 
     bit_array = data_to_bit_array(data)
+    bits_len = len(bit_array)
     blocks_with_hashes = get_blocks_with_hashes(image)
     for index, bit in enumerate(bit_array):
+        progress_queue.put_nowait(index / bits_len)
+        
         block, hash = blocks_with_hashes[index]
         if bit != hash:
             block_for_substitution = get_block_for_substitution(block, bit, cache)
