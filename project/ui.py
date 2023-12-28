@@ -4,12 +4,19 @@ import pathlib
 import shutil
 import random
 from multiprocessing import Manager
-import time
 
 from alg_wrappers import lsb_basic_hide_wrapper, lsb_basic_reveal_wrapper, lsb_vr_hide_wrapper, lsb_vr_reveal_wrapper, coverless_hide_data_wrapper
 from algorithms.coverless import build_block_cache, get_message
+import help_ui # Only needs to be initialized
 
 
+# Default styling
+ui.image.default_classes("w-64 h-64 border border-gray-300")
+ui.button.default_classes("w-64")
+ui.input.default_classes("w-64")
+ui.textarea.default_classes("w-64")
+
+# Validation
 IMAGE_FILE_TYPES = ('Image Files (*.png;*.tiff;*.bmp)',)
 
 secret_text_validation = {'Secret text too long': lambda value: len(value) <= 100}
@@ -18,6 +25,7 @@ im_filename_validation = {"Invalid file type, allowed: .png, .tiff, .bmp": lambd
 def im_filename_validation_func(filename):
     return all(validate(filename) for _, validate in im_filename_validation.items())
 
+# Helper functions
 def read_im(path):
     return cv2.cvtColor(cv2.imread(path), cv2.COLOR_BGR2RGB)
 
@@ -28,7 +36,6 @@ def set_im_ui(im_ui, im):
     tmp_png_im_path = f"tmp/tmp_im_{random.randint(0, 100000)}.png"
     write_im(tmp_png_im_path, im)
     im_ui.set_source(tmp_png_im_path)
-    im_ui.update()
 
 async def get_file(callback, file_types=None):
     if file_types == None:
@@ -37,17 +44,8 @@ async def get_file(callback, file_types=None):
     if files is not None and len(files) > 0:
         callback(files[0])
 
-# TODOS:
-# Add descriptions and help
-# Set appropriate window sizing
-# Add borders around images?
-# concurrent.futures.process.BrokenProcessPool: A process in the process pool was terminated abruptly while the future was running or pending.
 
-ui.image.default_classes("w-64 h-64")
-ui.button.default_classes("w-64")
-ui.input.default_classes("w-64")
-ui.textarea.default_classes("w-64")
-
+# Algorithms pages
 class LSBHideAlg:
     def __init__(self, hide_alg, opts_class):
         self.cover_im = None
@@ -66,44 +64,39 @@ class LSBHideAlg:
                 self.secret_im_ui = ui.image("")
             with ui.column():
                 self.generate_btn_ui = ui.button('generate stego image', on_click=self.generate_stego_image)
-                    # bind_enabled_from(self, "generate_btn_state")
+                self.generate_btn_ui.disable()
                 self.generated_im_ui = ui.image("")
-                self.progressbar_ui = ui.linear_progress(show_value=False).props('instant-feedback query'). \
-                    bind_visibility_from(self, "computing")
-                self.filename_ui = ui.input(label='Result filename', validation=im_filename_validation, on_change=self.update_save_btn). \
-                    props('outlined')
+                self.progressbar_ui = ui.linear_progress(show_value=False).props('query')
+                self.progressbar_ui.set_visibility(False)
+                self.blank_progressbar_ui = ui.linear_progress(show_value=False)
+                self.filename_ui = ui.input(label='Result filename', validation=im_filename_validation, \
+                                            on_change=self.update_save_btn).props('outlined')
                 self.save_btn_ui = ui.button('save stego image', on_click=self.save_image)
-                    # bind_enabled_from(self, "save_btn_state")
+                self.save_btn_ui.disable()
 
-    # @property
-    # def save_btn_state(self):
-    #     return self.generated_im is not None and not self.computing and \
-    #         len(self.filename_ui.value) > 0 and im_filename_validation_func(self.filename_ui.value)
-
-    # @property
-    # def generate_btn_state(self):
-    #     return self.cover_im is not None and self.secret_im is not None and not self.computing
-    
     def update_save_btn(self):
         enabled = self.generated_im is not None and not self.computing and \
             len(self.filename_ui.value) > 0 and im_filename_validation_func(self.filename_ui.value)
         self.save_btn_ui.set_enabled(enabled)
-        self.save_btn_ui.update()
     
-    def udpate_generate_btn(self):
+    def update_generate_btn(self):
         enabled = self.cover_im is not None and self.secret_im is not None and not self.computing
         self.generate_btn_ui.set_enabled(enabled)
-        self.generate_btn_ui.update()
+    
+    def update_progressbar(self):
+        self.progressbar_ui.set_visibility(self.computing)
+        self.blank_progressbar_ui.set_visibility(not self.computing)
+        self.blank_progressbar_ui.set_value(1 if self.generated_im is not None else 0)
     
     def set_cover_im(self, im_path):
         self.cover_im = read_im(im_path)
         set_im_ui(self.cover_im_ui, self.cover_im)
-        self.udpate_generate_btn()
+        self.update_generate_btn()
     
     def set_secret_im(self, im_path):
         self.secret_im = read_im(im_path)
         set_im_ui(self.secret_im_ui, self.secret_im)
-        self.udpate_generate_btn()
+        self.update_generate_btn()
 
     async def choose_cover_im(self):
         await get_file(self.set_cover_im, file_types=IMAGE_FILE_TYPES)
@@ -121,22 +114,22 @@ class LSBHideAlg:
         write_im(self.tmp_im_path, im)
         self.generated_im = im
         set_im_ui(self.generated_im_ui, self.generated_im)
-        self.update_save_btn()
     
     def clear_generated_im(self):
         self.generated_im_ui.set_source("")
-        self.generated_im_ui.update()
+    
+    def set_computing(self, computing):
+        self.computing = computing
+        self.update_save_btn()
+        self.update_generate_btn()
+        self.update_progressbar()
     
     async def generate_stego_image(self):
-        self.computing = True
-        self.update_save_btn()
-        self.udpate_generate_btn()
+        self.set_computing(True)
         self.clear_generated_im()
         result_im = await run.cpu_bound(self.hide_alg, self.cover_im, self.secret_im, **self.opts.get_args())
         self.set_generated_im(result_im)
-        self.computing = False
-        self.update_save_btn()
-        self.udpate_generate_btn()
+        self.set_computing(False)
 
 
 class LSBRevealAlg:
@@ -152,28 +145,35 @@ class LSBRevealAlg:
                 self.stego_im_ui = ui.image("")
                 self.opts = opts_class()
             with ui.column():
-                self.reveal_btn_ui = ui.button('reveal secret image', on_click=self.reveal_secret_image). \
-                    bind_enabled_from(self, "reveal_btn_state")
+                self.reveal_btn_ui = ui.button('reveal secret image', on_click=self.reveal_secret_image)
+                self.reveal_btn_ui.disable()
                 self.revealed_im_ui = ui.image("")
-                self.progressbar_ui = ui.linear_progress(show_value=False).props('instant-feedback query'). \
-                    bind_visibility_from(self, "computing")
-                self.filename_ui = ui.input(label='Result filename', validation=im_filename_validation). \
-                    props('outlined')
-                self.save_btn_ui = ui.button('save revealed image', on_click=self.save_image). \
-                    bind_enabled_from(self, "save_btn_state")
+                self.progressbar_ui = ui.linear_progress(show_value=False).props('instant-feedback query')
+                self.progressbar_ui.set_visibility(False)
+                self.blank_progressbar_ui = ui.linear_progress(show_value=False)
+                self.filename_ui = ui.input(label='Result filename', validation=im_filename_validation, \
+                                            on_change=self.update_save_btn).props('outlined')
+                self.save_btn_ui = ui.button('save revealed image', on_click=self.save_image)
+                self.save_btn_ui.disable()
     
-    @property
-    def save_btn_state(self):
-        return self.revealed_im is not None and not self.computing and \
+    def update_save_btn(self):
+        enabled = self.revealed_im is not None and not self.computing and \
             len(self.filename_ui.value) > 0 and im_filename_validation_func(self.filename_ui.value)
-
-    @property
-    def reveal_btn_state(self):
-        return self.stego_im is not None and not self.computing
+        self.save_btn_ui.set_enabled(enabled)
     
+    def update_reveal_btn(self):
+        enabled = self.stego_im is not None and not self.computing
+        self.reveal_btn_ui.set_enabled(enabled)
+    
+    def update_progressbar(self):
+        self.progressbar_ui.set_visibility(self.computing)
+        self.blank_progressbar_ui.set_visibility(not self.computing)
+        self.blank_progressbar_ui.set_value(1 if self.revealed_im is not None else 0)
+
     def set_stego_im(self, im_path):
         self.stego_im = read_im(im_path)
         set_im_ui(self.stego_im_ui, self.stego_im)
+        self.update_reveal_btn()
     
     async def choose_stego_im(self):
         await get_file(self.set_stego_im, file_types=IMAGE_FILE_TYPES)
@@ -191,14 +191,19 @@ class LSBRevealAlg:
     
     def clear_revealed_im(self):
         self.revealed_im_ui.set_source("")
-        self.revealed_im_ui.update()
+    
+    def set_computing(self, computing):
+        self.computing = computing
+        self.update_save_btn()
+        self.update_reveal_btn()
+        self.update_progressbar()
 
     async def reveal_secret_image(self):
-        self.computing = True
+        self.set_computing(True)
         self.clear_revealed_im()
         result_im = await run.cpu_bound(self.reveal_alg, self.stego_im, **self.opts.get_args())
         self.set_revealed_im(result_im)
-        self.computing = False
+        self.set_computing(False)
 
 
 class CoverlessHideAlg:
@@ -216,61 +221,59 @@ class CoverlessHideAlg:
             with ui.column():
                 ui.button('choose cover image', on_click=self.choose_cover_im)
                 self.cover_im_ui = ui.image("")
-                ui.button('choose blocks directory', on_click=self.choose_blocks_dir). \
-                    bind_enabled_from(self, "choose_blocks_btn_state")
+                ui.button('choose blocks directory', on_click=self.choose_blocks_dir)
                 self.cache_progressbar_ui = ui.linear_progress(value=0, show_value=False).props('instant-feedback'). \
                     bind_value_from(self, "cache_progress_bar_state")
                 self.chosen_blocks_dir_label_ui = ui.textarea(label='Selected blocks directory'). \
                     props('outlined readonly autogrow').bind_value_from(self, "blocks_dir")
             with ui.column():
                 ui.button('load secret text', on_click=self.choose_secret_text_file)
-                self.secret_text_ui = ui.textarea(label='Secret text', validation=secret_text_validation). \
-                    props('outlined autogrow')
+                self.secret_text_ui = ui.textarea(label='Secret text', validation=secret_text_validation, \
+                                                  on_change=self.update_generate_btn).props('outlined autogrow')
             with ui.column():
-                self.generate_btn_ui = ui.button('generate stego image', on_click=self.generate_stego_image). \
-                    bind_enabled_from(self, "generate_btn_state")
+                self.generate_btn_ui = ui.button('generate stego image', on_click=self.generate_stego_image)
+                self.generate_btn_ui.disable()
                 self.generated_im_ui = ui.image("")
                 self.progressbar_ui = ui.linear_progress(value=0, show_value=False).props('instant-feedback'). \
                     bind_value_from(self, "progress_bar_state")
-                self.filename_ui = ui.input(label='Result filename', validation=im_filename_validation). \
-                    props('outlined')
-                self.save_btn_ui = ui.button('save stego image', on_click=self.save_image). \
-                    bind_enabled_from(self, "save_btn_state")
+                self.filename_ui = ui.input(label='Result filename', validation=im_filename_validation, \
+                                            on_change=self.update_save_btn).props('outlined')
+                self.save_btn_ui = ui.button('save stego image', on_click=self.save_image)
+                self.save_btn_ui.disable()
     
     @property
     def cache_progress_bar_state(self):
         if self.blocks_computing:
-            return self.cache_progress_queue.get() if not self.cache_progress_queue.empty() else self.cache_progressbar_ui.value
+            return self.cache_progress_queue.get_nowait() if not self.cache_progress_queue.empty() else self.cache_progressbar_ui.value
         return 1 if self.blocks_cache else 0
     
     @property
     def progress_bar_state(self):
         if self.computing:
-            return self.progress_queue.get() if not self.progress_queue.empty() else self.progressbar_ui.value
+            return self.progress_queue.get_nowait() if not self.progress_queue.empty() else self.progressbar_ui.value
         return 1 if self.generated_im is not None else 0
-
-    @property
-    def choose_blocks_btn_state(self):
-        return not self.blocks_computing
     
-    @property
-    def save_btn_state(self):
-        return self.generated_im is not None and not self.computing and \
+    def update_save_btn(self):
+        enabled = self.generated_im is not None and not self.computing and \
             len(self.filename_ui.value) > 0 and im_filename_validation_func(self.filename_ui.value)
-
-    @property
-    def generate_btn_state(self):
-        return self.cover_im is not None and self.blocks_cache is not None and not self.computing and \
-            len(self.secret_text_ui.value) > 0 and not self.blocks_computing
+        self.save_btn_ui.set_enabled(enabled)
     
+    def update_choose_blocks_btn(self):
+        self.generate_btn_ui.set_enabled(not self.blocks_computing)
+    
+    def update_generate_btn(self):
+        enabled = self.cover_im is not None and self.blocks_cache is not None and not self.computing and \
+            len(self.secret_text_ui.value) > 0 and not self.blocks_computing
+        self.generate_btn_ui.set_enabled(enabled)
+
     def set_cover_im(self, im_path):
         self.cover_im = read_im(im_path)
         set_im_ui(self.cover_im_ui, self.cover_im)
+        self.update_generate_btn()
     
     def set_secret_text_file(self, text_path):
         with open(text_path, "r") as f:
             self.secret_text_ui.set_value(f.read()[:100])
-            self.secret_text_ui.update()
     
     def set_blocks_dir(self, dir_path):
         self.blocks_dir = dir_path
@@ -278,12 +281,17 @@ class CoverlessHideAlg:
     async def choose_cover_im(self):
         await get_file(self.set_cover_im, file_types=IMAGE_FILE_TYPES)
 
+    def set_blocks_computing(self, computing):
+        self.blocks_computing = computing
+        self.update_choose_blocks_btn()
+        self.update_generate_btn()
+
     async def choose_blocks_dir(self):
         await get_file(lambda f: self.set_blocks_dir(str(pathlib.Path(f).parent)))
-        self.blocks_computing = True
+        self.set_blocks_computing(True)
         blocks_dir_filenames = [str(f) for f in pathlib.Path(self.blocks_dir).iterdir() if f.is_file()]
         self.blocks_cache = await run.cpu_bound(build_block_cache, blocks_dir_filenames, self.cache_progress_queue)
-        self.blocks_computing = False
+        self.set_blocks_computing(False)
     
     async def choose_secret_text_file(self):
         await get_file(self.set_secret_text_file)
@@ -301,16 +309,18 @@ class CoverlessHideAlg:
     
     def clear_generated_im(self):
         self.generated_im_ui.set_source("")
-        self.generated_im_ui.update()
     
+    def set_computing(self, computing):
+        self.computing = computing
+        self.update_save_btn()
+        self.update_generate_btn()
+
     async def generate_stego_image(self):
-        self.computing = True
+        self.set_computing(True)
         self.clear_generated_im()
-        self.generate_btn_ui.disable()
-        self.generate_btn_ui.update()
         result_im = await run.cpu_bound(coverless_hide_data_wrapper, self.cover_im, self.secret_text_ui.value + "\0", self.blocks_cache, self.progress_queue)
         self.set_generated_im(result_im)
-        self.computing = False
+        self.set_computing(False)
 
 
 class CoverlessRevealAlg:
@@ -324,27 +334,34 @@ class CoverlessRevealAlg:
                 ui.button('choose stego image', on_click=self.choose_stego_im)
                 self.stego_im_ui = ui.image("")
             with ui.column():
-                self.reveal_btn_ui = ui.button('reveal secret text', on_click=self.reveal_secret_text). \
-                    bind_enabled_from(self, "reveal_btn_state")
+                self.reveal_btn_ui = ui.button('reveal secret text', on_click=self.reveal_secret_text)
+                self.reveal_btn_ui.disable()
                 self.revealed_text_ui = ui.textarea(label='Result').props('outlined readonly autogrow'). \
                     classes("h-64").bind_value_from(self, "revealed_text")
-                self.progressbar_ui = ui.linear_progress(show_value=False).props('instant-feedback query'). \
-                    bind_visibility_from(self, "computing")
-                self.filename_ui = ui.input(label='Result filename').props('outlined')
-                self.save_btn_ui = ui.button('save revealed text', on_click=self.save_revealed_text). \
-                    bind_enabled_from(self, "save_btn_state")
+                self.progressbar_ui = ui.linear_progress(show_value=False).props('instant-feedback query')
+                self.progressbar_ui.set_visibility(False)
+                self.blank_progressbar_ui = ui.linear_progress(show_value=False)
+                self.filename_ui = ui.input(label='Result filename', on_change=self.update_save_btn).props('outlined')
+                self.save_btn_ui = ui.button('save revealed text', on_click=self.save_revealed_text)
+                self.save_btn_ui.disable()
     
-    @property
-    def save_btn_state(self):
-        return len(self.revealed_text) > 0 and not self.computing and len(self.filename_ui.value) > 0
+    def update_save_btn(self):
+        enabled = len(self.revealed_text) > 0 and not self.computing and len(self.filename_ui.value) > 0
+        self.save_btn_ui.set_enabled(enabled)
     
-    @property
-    def reveal_btn_state(self):
-        return self.stego_im is not None and not self.computing
+    def update_reveal_btn(self):
+        enabled = self.stego_im is not None and not self.computing
+        self.reveal_btn_ui.set_enabled(enabled)
+    
+    def update_progressbar(self):
+        self.progressbar_ui.set_visibility(self.computing)
+        self.blank_progressbar_ui.set_visibility(not self.computing)
+        self.blank_progressbar_ui.set_value(1 if len(self.revealed_text) > 0 else 0)
     
     def set_stego_im(self, im_path):
         self.stego_im = read_im(im_path)
         set_im_ui(self.stego_im_ui, self.stego_im)
+        self.update_reveal_btn()
     
     async def choose_stego_im(self):
         await get_file(self.set_stego_im, file_types=IMAGE_FILE_TYPES)
@@ -354,14 +371,21 @@ class CoverlessRevealAlg:
             f.write(self.revealed_text)
             ui.notify(f"Saved text to {self.filename_ui.value}")
     
+    def set_computing(self, computing):
+        self.computing = computing
+        self.update_save_btn()
+        self.update_reveal_btn()
+        self.update_progressbar()
+    
     async def reveal_secret_text(self):
-        self.computing = True
+        self.set_computing(True)
         self.revealed_text = ""
         result_text = await run.cpu_bound(get_message, self.stego_im)
         self.revealed_text = result_text[:result_text.index("\\x00")]
-        self.computing = False
+        self.set_computing(False)
 
-        
+
+# Algorithms options
 class BasicLSBOptions:
     def __init__(self):
         with ui.element('div').classes('border rounded-md border-gray-300'):
@@ -418,22 +442,7 @@ def main_page():
                 with ui.tab_panel(reveal):
                     CoverlessRevealAlg()
     
-    ui.button('Help', on_click=lambda: ui.open('/help')).classes(remove="w-64")
-
-
-@ui.page('/help')
-def help_page():
-    ui.button('Go back', on_click=lambda: ui.open('/')).classes(remove="w-64")
-    ui.label('Help tab')
-
-    with ui.tabs().classes('w-full'):
-        ui.tab('Basic LSB')
-        ui.tab('Variable rate LSB')
-        ui.tab('Coverless')
-
-    with ui.tabs().classes('w-full'):
-        ui.tab('Hide')
-        ui.tab('Reveal')
+    ui.button('Help', on_click=lambda: ui.open('/help')).classes("bottom-4 absolute", remove="w-64")
 
     
 def on_startup():
@@ -445,4 +454,4 @@ def on_shutdown():
 app.on_startup(on_startup)
 app.on_shutdown(on_shutdown)
 
-ui.run(native=True, window_size=(1000, 750))
+ui.run(native=True, window_size=(1000, 800))
