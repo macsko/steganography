@@ -9,9 +9,8 @@ from algorithms.coverless import hide_data
 def lsb_basic_hide_wrapper(im1, im2, color_proportion):
     bit_fraction_used = sum(color_proportion)/24
     new_x, new_y = int(im1.shape[0] * math.sqrt(bit_fraction_used)), int(im1.shape[1] * math.sqrt(bit_fraction_used))
-    if new_x < im2.shape[0] or new_y < im2.shape[0]:
-        im2 = cv2.resize(im2.copy(), (new_x, new_y))
-    
+    im2 = cv2.resize(im2.copy(), (new_x, new_y))
+
     return lsb_basic_hide(im1, im2, color_proportion)
 
 def lsb_basic_reveal_wrapper(im, color_proportion):
@@ -23,8 +22,7 @@ def lsb_basic_reveal_wrapper(im, color_proportion):
 def lsb_vr_hide_wrapper(im1, im2, alpha, max_p):
     bit_fraction_used = lsb_vr_count_available_bits(im1, alpha, max_p) / (im1.shape[0] * im1.shape[1] * im1.shape[2] * 8)
     new_x, new_y = int(im1.shape[0] * math.sqrt(bit_fraction_used)), int(im1.shape[1] * math.sqrt(bit_fraction_used))
-    if new_x < im2.shape[0] or new_y < im2.shape[0]:
-        im2 = cv2.resize(im2.copy(), (new_x, new_y))
+    im2 = cv2.resize(im2.copy(), (new_x, new_y))
 
     return lsb_vr_hide(im1, im2, alpha, max_p)
 
