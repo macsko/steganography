@@ -57,7 +57,7 @@ def vr_lsb_result_ratio(cover_name, hidden_shape, alpha, max_p):
     return int(cover_shape[0] * math.sqrt(bit_fraction_used)) / hidden_shape[0]
 
 def basic_lsb_metrics():
-    basic_params = ["111", "222", "234", "333", "246", "444", "666"]
+    basic_params = ["111", "222", "234", "333", "432", "246", "444", "666"]
     basic_path = "../basic_tests_images"
     files_metrics = {}
    
@@ -78,7 +78,7 @@ def basic_lsb_metrics():
         print(df, end="\n\n")
 
 def vr_lsb_metrics():
-    vr_params = ["202", "22", "204", "104", "94", "44", "106", "26"]
+    vr_params = ["202", "22", "204", "104", "94", "44", "24", "206", "106", "26"]
     vr_path = "../vr_tests_images"
     files_metrics = {}
 

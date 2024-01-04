@@ -30,7 +30,7 @@ def lsb_vr_hide(im1, im2, alpha=9, max_p=4):
                 x = im1[row - 1, col, d] ^ im1[row + 1, col, d] ^ im1[row, col - 1, d] ^ im1[row, col + 1, d]
                 p = 1
                 if x > alpha:
-                    p = min(max_p, int(np.ceil(x/2)))
+                    p = min(max_p, int(np.ceil(x/alpha)))
 
                 b = im3[row, col, d]
                 b = ((b>>p)<<p) # Wipe p LSBits from b
@@ -59,7 +59,7 @@ def lsb_vr_reveal(im, hidden_shape, alpha=9, max_p=4):
                 x = im[row - 1, col, d] ^ im[row + 1, col, d] ^ im[row, col - 1, d] ^ im[row, col + 1, d]
                 p = 1
                 if x > alpha:
-                    p = min(max_p, int(np.ceil(x/2)))
+                    p = min(max_p, int(np.ceil(x/alpha)))
                 
                 b = im[row, col, d]
                 for j in range(p - 1, -1, -1):
