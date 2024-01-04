@@ -2,7 +2,7 @@ from nicegui import ui
 
 @ui.page('/help')
 def help_page():
-    ui.button('Go back', on_click=lambda: ui.open('/')).classes(remove="w-64")
+    ui.button('Go back', on_click=lambda: ui.open('/')).classes(remove="w-full")
 
     with ui.expansion('Algorithm selection', value=True).props("header-class=text-2xl").classes("w-full"):
         ui.markdown('''

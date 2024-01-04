@@ -11,10 +11,10 @@ import help_ui # Only needs to be initialized
 
 
 # Default styling
-ui.image.default_classes("w-64 h-64 border border-gray-300")
-ui.button.default_classes("w-64")
-ui.input.default_classes("w-64")
-ui.textarea.default_classes("w-64")
+ui.image.default_classes("border border-gray-300 aspect-square")
+ui.button.default_classes("w-full")
+ui.input.default_classes("w-full")
+ui.textarea.default_classes("w-full")
 
 # Validation
 IMAGE_FILE_TYPES = ('Image Files (*.png;*.tiff;*.bmp)',)
@@ -54,15 +54,15 @@ class LSBHideAlg:
         self.hide_alg = hide_alg
         self.computing = False
         
-        with ui.row().classes('w-full justify-center'):
-            with ui.column():
+        with ui.row().classes('w-full justify-center no-wrap'):
+            with ui.column().classes('w-1/3'):
                 ui.button('choose cover image', on_click=self.choose_cover_im)
                 self.cover_im_ui = ui.image("")
                 self.opts = opts_class()
-            with ui.column():
+            with ui.column().classes('w-1/3'):
                 ui.button('choose secret image', on_click=self.choose_secret_im)
                 self.secret_im_ui = ui.image("")
-            with ui.column():
+            with ui.column().classes('w-1/3'):
                 self.generate_btn_ui = ui.button('generate stego image', on_click=self.generate_stego_image)
                 self.generate_btn_ui.disable()
                 self.generated_im_ui = ui.image("")
@@ -139,12 +139,12 @@ class LSBRevealAlg:
         self.reveal_alg = reveal_alg
         self.computing = False
         
-        with ui.row().classes('w-full justify-center'):
-            with ui.column():
+        with ui.row().classes('w-full justify-center no-wrap'):
+            with ui.column().classes('w-1/3'):
                 ui.button('choose stego image', on_click=self.choose_stego_im)
                 self.stego_im_ui = ui.image("")
                 self.opts = opts_class()
-            with ui.column():
+            with ui.column().classes('w-1/3'):
                 self.reveal_btn_ui = ui.button('reveal secret image', on_click=self.reveal_secret_image)
                 self.reveal_btn_ui.disable()
                 self.revealed_im_ui = ui.image("")
@@ -217,8 +217,8 @@ class CoverlessHideAlg:
         self.computing = False
         self.progress_queue = Manager().Queue()
         
-        with ui.row().classes('w-full justify-center'):
-            with ui.column():
+        with ui.row().classes('w-full justify-center no-wrap'):
+            with ui.column().classes('w-1/3'):
                 ui.button('choose cover image', on_click=self.choose_cover_im)
                 self.cover_im_ui = ui.image("")
                 ui.button('choose blocks directory', on_click=self.choose_blocks_dir)
@@ -226,11 +226,11 @@ class CoverlessHideAlg:
                     bind_value_from(self, "cache_progress_bar_state")
                 self.chosen_blocks_dir_label_ui = ui.textarea(label='Selected blocks directory'). \
                     props('outlined readonly autogrow').bind_value_from(self, "blocks_dir")
-            with ui.column():
+            with ui.column().classes('w-1/3'):
                 ui.button('load secret text', on_click=self.choose_secret_text_file)
                 self.secret_text_ui = ui.textarea(label='Secret text', validation=secret_text_validation, \
                                                   on_change=self.update_generate_btn).props('outlined autogrow')
-            with ui.column():
+            with ui.column().classes('w-1/3'):
                 self.generate_btn_ui = ui.button('generate stego image', on_click=self.generate_stego_image)
                 self.generate_btn_ui.disable()
                 self.generated_im_ui = ui.image("")
@@ -329,15 +329,15 @@ class CoverlessRevealAlg:
         self.revealed_text = ""
         self.computing = False
         
-        with ui.row().classes('w-full justify-center'):
-            with ui.column():
+        with ui.row().classes('w-full justify-center no-wrap'):
+            with ui.column().classes('w-1/3'):
                 ui.button('choose stego image', on_click=self.choose_stego_im)
                 self.stego_im_ui = ui.image("")
-            with ui.column():
+            with ui.column().classes('w-1/3'):
                 self.reveal_btn_ui = ui.button('reveal secret text', on_click=self.reveal_secret_text)
                 self.reveal_btn_ui.disable()
                 self.revealed_text_ui = ui.textarea(label='Result').props('outlined readonly autogrow'). \
-                    classes("h-64").bind_value_from(self, "revealed_text")
+                    classes("aspect-square").bind_value_from(self, "revealed_text")
                 self.progressbar_ui = ui.linear_progress(show_value=False).props('instant-feedback query')
                 self.progressbar_ui.set_visibility(False)
                 self.blank_progressbar_ui = ui.linear_progress(show_value=False)
@@ -388,9 +388,9 @@ class CoverlessRevealAlg:
 # Algorithms options
 class BasicLSBOptions:
     def __init__(self):
-        with ui.element('div').classes('border rounded-md border-gray-300'):
+        with ui.element('div').classes('w-full border rounded-md border-gray-300'):
             ui.label('Color proportions:').classes("mt-2 ml-2 mr-2")
-            with ui.row().classes("w-64 justify-center"):
+            with ui.row().classes("w-full justify-center"):
                 self.r_ui = ui.number(label='R', value=4, min=0, max=8, precision=0).classes("w-8")
                 self.g_ui = ui.number(label='G', value=4, min=0, max=8, precision=0).classes("w-8")
                 self.b_ui = ui.number(label='B', value=4, min=0, max=8, precision=0).classes("w-8")
@@ -401,9 +401,9 @@ class BasicLSBOptions:
 
 class VRLSBOptions:
     def __init__(self):
-        with ui.element('div').classes('border rounded-md border-gray-300'):
+        with ui.element('div').classes('w-full border rounded-md border-gray-300'):
             ui.label('Parameters:').classes("mt-2 ml-2 mr-2")
-            with ui.row().classes("w-64 justify-center"):
+            with ui.row().classes("w-full justify-center"):
                 self.alpha_ui = ui.number(label='Alpha', value=9, min=-1, max=255, precision=0).classes("w-12")
                 self.max_p_ui = ui.number(label='Max bits', value=4, min=1, max=8, precision=0).classes("w-12")
     
@@ -442,7 +442,7 @@ def main_page():
                 with ui.tab_panel(reveal):
                     CoverlessRevealAlg()
     
-    ui.button('Help', on_click=lambda: ui.open('/help')).classes("bottom-4 absolute", remove="w-64")
+    ui.button('Help', on_click=lambda: ui.open('/help')).classes("bottom-4 absolute", remove="w-full")
 
     
 def on_startup():
