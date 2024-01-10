@@ -263,7 +263,7 @@ class CoverlessHideAlg:
     
     def update_generate_btn(self):
         enabled = self.cover_im is not None and self.blocks_cache is not None and not self.computing and \
-            len(self.secret_text_ui.value) > 0 and not self.blocks_computing
+            100 >= len(self.secret_text_ui.value) > 0 and not self.blocks_computing
         self.generate_btn_ui.set_enabled(enabled)
 
     def set_cover_im(self, im_path):

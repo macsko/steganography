@@ -12,7 +12,7 @@ def lsb_vr_count_available_bits(im, alpha=9, max_p=4):
         for col in range(1 + row%2, w1 - 1, 2):
             for d in range(d1):
                 x = im[row - 1, col, d] ^ im[row + 1, col, d] ^ im[row, col - 1, d] ^ im[row, col + 1, d]
-                result += min(max_p, int(np.ceil(x/2))) if x > alpha else 1
+                result += min(max_p, int(np.ceil(x/alpha))) if x > alpha else 1
     
     return result
 
